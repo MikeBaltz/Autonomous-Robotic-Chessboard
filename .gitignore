@@ -1,0 +1,40 @@
+# PlatformIO build artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Runtime user data (recreated automatically on first use)
+software/virtual_chess/user_move_preferences.json
+
+# Logs
+*.log
+screenlog*
+
+# macOS
+.DS_Store
+.AppleDouble/
+.LSOverride/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Generated firmware images (built by PlatformIO into .pio/)
+*.bin
+*.elf
+*.hex

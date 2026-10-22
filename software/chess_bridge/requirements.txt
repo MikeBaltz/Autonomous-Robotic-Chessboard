@@ -1,0 +1,2 @@
+chess>=1.7.0
+pyserial>=3.5
