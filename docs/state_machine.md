@@ -21,7 +21,7 @@ The aspirational firmware design ([firmware_architecture.md](firmware_architectu
 | State | Meaning |
 |---|---|
 | `BOOT` → `INIT` → `SELF_TEST` → `IDLE` | Startup and diagnostics |
-| `HOMING` → `HOMED` | Endstop-based position reference (endstops not yet installed) |
+| `HOMING` → `HOMED` | Position reference from StallGuard sensorless homing (in progress; no endstop switches) |
 | `CALIBRATING` → `READY` | Board geometry and sensor threshold calibration |
 | `MOVING` / `SCANNING` | Motion and scan operations, rejecting concurrent commands |
 | `ERROR` / `EMERGENCY_STOP` | Fault containment with explicit recovery |

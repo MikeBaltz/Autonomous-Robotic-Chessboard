@@ -34,12 +34,17 @@ Single-file firmware with the calibrated constants (45.1 mm pitch, 2220 steps/sq
 
 - **Motion core** — `moveXSteps`/`moveYSteps` with linear acceleration/deceleration ramps (up to 100 ramp steps, 4× start delay), per-axis direction inversion, dead-reckoned position in square units
 - **Targeting** — `moveToSquare(col,row)`, `moveToColumn`, `moveToRow`, surround parking (`l/r/t/w`), sensor-mode Y offset (−15 mm / pitch) so the Hall sensor — not the electromagnet — lands on the square center
-- **UCI move execution** — `executeUCIMove` parses `e2e4`-style input and dispatches:
-  - **Knight moves** → grid-line navigation: travel along the border between columns to maximize clearance from adjacent pieces
-  - **Bishop moves** → `moveDiagonal` with interleaved X/Y step pulses for a straight-line diagonal trajectory
+- **UCI move execution** — `executeUCIMove` parses `e2e4`-style input (optional promotion letter, e.g. `e7e8q`) and dispatches by geometry. Piece moves always target the electromagnet at the square center (`moveToSquareCenter`), regardless of the manual sensor-mode toggle:
+  - **Knight moves** → grid-line navigation: the long (two-square) leg travels along the border between files or ranks, so the knight never passes over the center of an occupied square
+  - **Diagonal moves** → `moveDiagonal` with interleaved X/Y step pulses for a straight-line diagonal trajectory (dispatch is geometric, so diagonal queen/king/pawn moves use it too)
   - **Other moves** → pickup at source, straight transport (X then Y), place at destination
+- **Primitives used by `chess_bridge`** — `g x y` (absolute grid move), `path x1 y1 x2 y2 …` (waypoints), `o`/`O` (magnet on/off), `scan e4` / `scanpos x y` (single Hall reading at the sensor-offset position, reply `SCAN e4 M|E|X`), `lane L1`…`R8` (capture-lane positioning)
   - Replies `DONE` when finished (consumed by `chess_bridge`); `ERROR: …` on invalid input
 - **Diagnostics** — pin state readback, test pulse, force-enable command
+
+## TMC2209 UART / StallGuard test (`sketches/tmc_uart_test/`)
+
+Bring-up sketch for the BigTreeTech TMC2209 V1.3 drivers on a shared single-wire UART (`Serial1`, GPIO6 TX open-drain + GPIO5 RX, addresses X = 0 and Y = 1, using `TMCStepper`). It checks communication with both drivers, sets 1/8 microstepping, jogs each axis while printing `SG_RESULT`, and helps pick the StallGuard threshold and speed for sensorless homing (DIAG on GPIO7 / GPIO15). See its [README](../sketches/tmc_uart_test/README.md). The `movement` sketch does not configure UART yet.
 
 ## Other sketches
 

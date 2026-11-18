@@ -6,6 +6,8 @@
 **Build system:** PlatformIO / ESP-IDF  
 **Language:** C++17  
 
+> **Note (2026-11-18):** this is an aspirational design that predates several hardware decisions. Where it disagrees with the built prototype, the prototype wins: the gantry is **Cartesian XY** (one motor per axis); the TMC2209 drivers are configured over a **shared single-wire UART** (GPIO6 TX / GPIO5 RX, addresses X = 0, Y = 1), not SPI; and homing uses **StallGuard sensorless homing** (DIAG on GPIO7 / GPIO15) instead of endstop switches. See [hardware.md](hardware.md) and [development-status.md](development-status.md).
+
 ---
 
 ## Table of Contents
@@ -119,14 +121,14 @@ firmware/
 │   │   ├── include/drivers/
 │   │   │   ├── imotor_driver.hpp   # Abstract motor driver interface
 │   │   │   ├── tmc2209.hpp
-│   │   │   ├── corexy.hpp          # CoreXY gantry abstraction (2 motors)
+│   │   │   ├── xy_gantry.hpp       # Cartesian XY gantry abstraction (one motor per axis)
 │   │   │   ├── hall_sensor.hpp
 │   │   │   ├── homing_switch.hpp
 │   │   │   ├── ws2812.hpp
 │   │   │   └── electromagnet.hpp
 │   │   └── src/
 │   │       ├── tmc2209.cpp
-│   │       ├── corexy.cpp
+│   │       ├── xy_gantry.cpp
 │   │       ├── hall_sensor.cpp
 │   │       ├── homing_switch.cpp
 │   │       ├── ws2812.cpp
@@ -156,7 +158,7 @@ firmware/
 │   │   │   ├── motion_controller.hpp
 │   │   │   ├── path_planner.hpp    # Converts chess moves → waypoints
 │   │   │   ├── trajectory.hpp      # S-curve acceleration profile
-│   │   │   ├── kinematics.hpp      # CoreXY forward/inverse kinematics
+│   │   │   ├── kinematics.hpp      # Cartesian XY kinematics (mm ⇄ steps per axis)
 │   │   │   └── safety.hpp          # Soft limits, collision guard
 │   │   └── src/
 │   │       ├── motion_controller.cpp
@@ -281,7 +283,7 @@ The HAL is the **only** place where `#include <driver/gpio.h>` or Arduino `digit
 |---|---|
 | `IMotorDriver` | Abstract interface: `init()`, `moveTo()`, `stop()`, `getPosition()`, `setCurrent()` |
 | `TMC2209` | Implements `IMotorDriver` for TMC2209 via UART or STEP/DIR. Handles stall detection (StallGuard). Configures microstepping, current. |
-| `CoreXY` | Owns **two** `IMotorDriver*`. Converts Cartesian (x,y) → motor A/B steps using CoreXY kinematics. Provides `moveTo(x_mm, y_mm, speed)`. |
+| `XYGantry` | Owns **two** `IMotorDriver*`, one per axis (Cartesian XY). Converts (x, y) in mm → X/Y motor steps. Provides `moveTo(x_mm, y_mm, speed)`. |
 | `HallSensor` | Reads a single analog hall sensor. Configurable threshold. Provides `isPiecePresent()` / `readStrength()`. |
 | `HomingSwitch` | Reads an endstop / limit switch. Debounced. Provides `isTriggered()`. |
 | `WS2812` | Drives a strip of addressable RGB LEDs via RMT peripheral. Provides `setPixel(index, r, g, b)` and `show()`. |
@@ -306,7 +308,7 @@ The HAL is the **only** place where `#include <driver/gpio.h>` or Arduino `digit
 | `MotionController` | High-level motion orchestrator. Takes a `ChessMove`, plans the sequence (move to pickup, engage magnet, lift, move to place, lower, disengage), executes each step. |
 | `PathPlanner` | Converts board-square coordinates to physical (x,y) waypoints. Handles obstacle avoidance (other pieces not on the move path). Generates safe travel height for the electromagnet. |
 | `Trajectory` | Generates S-curve acceleration profiles. Given start/end position and speed limits, produces a list of timed setpoints for the motor control loop. |
-| `Kinematics` | Pure math. Forward kinematics: (motorA, motorB) → (x, y). Inverse kinematics: (x, y) → (motorA, motorB). Unit-tested exhaustively. |
+| `Kinematics` | Pure math. Forward kinematics: (stepsX, stepsY) → (x, y). Inverse kinematics: (x, y) → (stepsX, stepsY). One motor per axis, so each axis maps independently. Unit-tested exhaustively. |
 | `Safety` | Software limits. Enforces maximum travel bounds. Monitors motor current for stalls. Triggered by limit switches. Auto-disengages on fault. All paths validated before execution. |
 
 ### 3.6 `components/sensors/` — Sensor Management
@@ -774,7 +776,7 @@ public:
 | `CommandDispatcher` | Routes serial commands to handlers. Extensible registry pattern. |
 | `IGpio`, `ISpi`, `IUart` | HAL interfaces. Without them, drivers are coupled to ESP32. |
 | `TMC2209` | The motor driver. You can't move without it. |
-| `CoreXY` | Converts Cartesian → motor steps. Core kinematic logic. |
+| `XYGantry` | Converts (x, y) → per-axis motor steps. Core kinematic logic. |
 | `Kinematics` | Pure math. Easy to unit-test. Get it right early. |
 | `MotionController` | High-level motion orchestration. Required by state machine. |
 | `HallSensor` | Board piece detection. Required for scanning. |
@@ -831,7 +833,7 @@ Use `#pragma once` everywhere. Supported by all modern compilers for ESP32. Less
 | Principle | How It's Applied |
 |---|---|
 | **S** — Single Responsibility | Every class has exactly one reason to change. `TMC2209` only talks to the TMC2209 IC. `Frame` only encodes/decodes. `PathPlanner` only computes waypoints. |
-| **O** — Open/Closed | New motor drivers implement `IMotorDriver` — no changes to `CoreXY` or `MotionController`. New sensor types implement `ISensor` — no changes to `BoardScanner`. The `CommandDispatcher` registry allows adding commands without modifying the dispatcher itself. |
+| **O** — Open/Closed | New motor drivers implement `IMotorDriver` — no changes to `XYGantry` or `MotionController`. New sensor types implement `ISensor` — no changes to `BoardScanner`. The `CommandDispatcher` registry allows adding commands without modifying the dispatcher itself. |
 | **L** — Liskov Substitution | Every `IMotorDriver` implementation must satisfy the contract. `MockMotor` behaves identically to `TMC2209` in tests. `GpioEsp32` and `GpioMock` are interchangeable. |
 | **I** — Interface Segregation | `IMotorDriver` does not include LED or sensor methods. `IUart` does not include SPI methods. Clients depend only on what they use. |
 | **D** — Dependency Inversion | High-level modules (`MotionController`) depend on abstractions (`IMotorDriver*`), not concrete classes (`TMC2209`). Dependencies are injected at construction time (constructor injection). The `App` class is the composition root that wires concrete instances to interfaces. |
@@ -844,10 +846,10 @@ Use `#pragma once` everywhere. Supported by all modern compilers for ESP32. Less
 // Composition root in App::init()
 auto gpio    = std::make_unique<GpioEsp32>();
 auto spi     = std::make_unique<SpiEsp32>(SPI2_HOST);
-auto motorA  = std::make_unique<TMC2209>(*spi, *gpio, PIN_CS_A, PIN_EN_A);
-auto motorB  = std::make_unique<TMC2209>(*spi, *gpio, PIN_CS_B, PIN_EN_B);
-auto corexy  = std::make_unique<CoreXY>(std::move(motorA), std::move(motorB));
-auto motion  = std::make_unique<MotionController>(std::move(corexy), *safety);
+auto motorX  = std::make_unique<TMC2209>(*spi, *gpio, PIN_CS_A, PIN_EN_A);
+auto motorY  = std::make_unique<TMC2209>(*spi, *gpio, PIN_CS_B, PIN_EN_B);
+auto gantry  = std::make_unique<XYGantry>(std::move(motorX), std::move(motorY));
+auto motion  = std::make_unique<MotionController>(std::move(gantry), *safety);
 ```
 
 This makes unit testing trivial: inject mocks instead of real hardware drivers.
@@ -952,7 +954,7 @@ Each extension point is designed so new features are **added** rather than modif
 
 ### 14.2 More Motors
 
-- `CoreXY` currently owns exactly two `IMotorDriver*`.
+- `XYGantry` currently owns exactly two `IMotorDriver*`.
 - For additional axes (Z-axis for lift, rotational axis), create a `MultiAxisController` that holds a vector of `IMotorDriver*`.
 - The `IMotorDriver` interface already supports arbitrary motors.
 
@@ -1032,7 +1034,7 @@ graph TB
 
         subgraph Drivers[Drivers]
             TMC[TMC2209]
-            CXY[CoreXY]
+            CXY[XYGantry]
             Hall[Hall Sensor]
             Home[Homing Switch]
         end
@@ -1077,7 +1079,7 @@ graph TD
         Proto[Protocol]
         Disp[CommandDispatcher]
         TMC[TMC2209]
-        CXY[CoreXY]
+        CXY[XYGantry]
         Hall[HallSensor]
         Home[HomingSwitch]
         LED[WS2812]

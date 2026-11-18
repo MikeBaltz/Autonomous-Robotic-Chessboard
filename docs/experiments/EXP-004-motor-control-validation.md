@@ -140,6 +140,6 @@ Uploaded firmware with 4-test sequence:
 
 - Mount motor on carriage mechanism
 - Add second motor for XY motion
-- Implement CoreXY kinematics
+- Implement XY kinematics (built as Cartesian XY, one motor per axis — see EXP-006)
 - Test coordinated motion between two motors
 - Configure UART mode for advanced features (StallGuard, dynamic current control)

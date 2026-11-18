@@ -98,5 +98,7 @@ See [EXP-004](../experiments/EXP-004-motor-control-validation.md) for detailed e
 
 - Integrate motor control with carriage mechanism
 - Add second motor for XY motion
-- Implement CoreXY kinematics
+- Implement XY kinematics (built as a Cartesian XY gantry, one motor per axis)
 - Configure UART mode for advanced features (StallGuard, dynamic current control)
+
+> **Update (2026-11-18):** both drivers (BigTreeTech TMC2209 V1.3) are now wired to a shared single-wire UART (GPIO6 TX open-drain + GPIO5 RX; addresses X = 0, Y = 1), verified with [`sketches/tmc_uart_test`](../../sketches/tmc_uart_test/README.md). StallGuard sensorless homing (DIAG on GPIO7 / GPIO15) is in progress and replaces the planned endstop switches. The `movement` sketch does not configure UART yet.

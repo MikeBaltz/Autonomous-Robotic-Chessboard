@@ -7,16 +7,16 @@
 | Component | Model | Status | Purpose | Notes |
 |---|---|---|---|---|
 | Microcontroller | ESP32-S3 DevKitC N16R8 | Tested | Main controller | PlatformIO + Arduino framework |
-| Hall sensor | Hall-effect module | Tested | Detects magnet presence | GPIO4, active LOW |
+| Hall sensor | Hall-effect module (modified, single polarity) | Tested | Detects black pieces only; white pieces read empty (ADR-006 update) | GPIO4, active LOW |
 | Neodymium magnets | 2×10 mm (pawn) | Tested | Embedded in chess pieces | For piece detection |
 | Carriage magnets | 2×10 mm + 2× 3×3 mm | Received | For carriage assembly | Superseded by electromagnet actuation (ADR-005) |
-| Stepper driver | TMC2209 StepStick V2 | Tested | Drives NEMA17 motors | Working |
+| Stepper driver | BigTreeTech TMC2209 V1.3 | Tested | Drives NEMA17 motors | STEP/DIR/EN working; shared single-wire UART wired and verified with `sketches/tmc_uart_test` (movement sketch integration pending) |
 | Stepper motor | NEMA17 17HS4401 | Tested | XY motion | 2220 steps per square |
 | 12 V power supply | TBD | Tested | Powers TMC2209 and motors | Working |
-| XY gantry | Custom Cartesian: V-slot extrusions, V-wheel carriage, GT2 belts and pulleys | Built (prototype) | XY motion system | Calibrated, see EXP-006 |
+| XY gantry | Custom Cartesian XY (one motor per axis): V-slot extrusions, V-wheel carriage, GT2 belts and pulleys | Built (prototype) | XY motion system | Calibrated, see EXP-006 |
 | Carriage | Custom | Tested | Holds sensor and electromagnet | See calibration below |
-| Electromagnet | Electromagnet actuator | Tested | Piece pickup and placement | GPIO39, active HIGH; holding-force verification in progress (EXP-005) |
-| Endstops | TBD | Planned | Homing reference | Not started |
+| Electromagnet | Electromagnet actuator | Tested | Piece pickup and placement | GPIO39, active HIGH; picks up and moves pieces through the board (EXP-005 follow-up) |
+| Endstops | None: StallGuard sensorless homing | In progress | Homing reference | Replaces planned endstop switches; see [Homing](#homing) |
 | Breadboard + jumpers | Generic | Tested | Prototyping | Temporary |
 
 ---
@@ -33,20 +33,30 @@
 | GPIO17 | Y motor DIR | In use |
 | GPIO18 | Y motor EN | In use |
 | GPIO39 | Electromagnet | In use |
+| GPIO6 | TMC2209 UART TX (open-drain), joined with GPIO5 → both drivers' `RX` pins | Wired |
+| GPIO5 | TMC2209 UART RX, joined with GPIO6 → both drivers' `RX` pins | Wired |
+| GPIO7 | X driver DIAG (StallGuard stall output) | Being wired |
+| GPIO15 | Y driver DIAG (StallGuard stall output) | Being wired |
 | USB | Serial (115200 baud) | In use |
 
 > **Note (verify before using the main firmware):** `include/config.h` currently lists the X/Y motor pin groups transposed (X = 16/17/18, Y = 8/9/10) relative to the calibrated gantry wiring above. The table reflects the wiring used by the movement-family sketches. See [development-status.md](development-status.md).
+
+TMC2209 UART addresses: X = 0 (MS1 GND, MS2 GND), Y = 1 (MS1 3.3 V, MS2 GND).
+On the BTT V1.3 the pin labelled `RX` is the single-wire UART pin; `TX` is unused.
+No resistor: the firmware drives GPIO6 open-drain with pull-ups.
+Bring-up procedure: [sketches/tmc_uart_test](../sketches/tmc_uart_test/README.md).
+
+> **Caution:** with Y's `MS1` tied to 3.3 V, the Y driver defaults to 1/32 microstepping until firmware sets it over UART. `tmc_uart_test` sets both drivers to 1/8; the `movement` sketch does not configure UART yet. See [development-status.md](development-status.md).
 
 > **History:** the electromagnet was originally wired to GPIO15 during [EXP-005](experiments/EXP-005-electromagnet-control-test.md); it is now on GPIO39.
 
 ---
 
-## TBD Pin Assignments
+## Homing
 
-The following pins have not been assigned yet:
-
-- Endstop X
-- Endstop Y
+Sensorless homing is in progress: no endstop switches. Each axis is driven into its
+mechanical end and the TMC2209 StallGuard DIAG output (X → GPIO7, Y → GPIO15) signals the stall.
+Threshold tuning is done with `sketches/tmc_uart_test`; the homing routine itself is not written yet.
 
 ---
 
@@ -70,7 +80,7 @@ The following pins have not been assigned yet:
 
 Contains:
 
-- Single Hall sensor (detects magnet presence)
+- Single Hall sensor (single polarity: detects black pieces only)
 - Electromagnet (piece pickup)
 - Mechanical mount
 - Cable management

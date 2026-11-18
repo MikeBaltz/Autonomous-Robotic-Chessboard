@@ -17,6 +17,7 @@ htmlcov/
 
 # Runtime user data (recreated automatically on first use)
 software/virtual_chess/user_move_preferences.json
+capture_ledger.json
 
 # Logs
 *.log
@@ -24,6 +25,7 @@ screenlog*
 
 # macOS
 .DS_Store
+__MACOSX/
 .AppleDouble/
 .LSOverride/
 

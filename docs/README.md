@@ -10,6 +10,8 @@
 - [Software](software.md) — Python components (virtual chess prototype, chess bridge)
 - [Communication](communication.md) — implemented serial protocol + draft future spec
 - [Development Status](development-status.md) — implemented / experimental / in-progress / planned, known issues
+- [Active System Configuration](active_system_configuration.md) — source-level reference for the active firmware and bridge (pins, motion constants, serial commands, move decomposition)
+- [Configuration Conflicts](configuration_conflicts.md) — audit of discrepancies between the active code, legacy code and older docs
 - [Roadmap](roadmap.md) — project phases and progress
 
 ---

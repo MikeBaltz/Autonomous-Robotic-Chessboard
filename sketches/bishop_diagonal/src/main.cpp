@@ -58,10 +58,10 @@ void stepY(bool direction) {
 void moveXSteps(int steps, bool direction) {
   uint32_t minDelay = 1000000 / (MOVE_SPEED * 2);
   uint32_t startDelay = minDelay * 4;
-  
+
   int accelSteps = min(100, steps / 3);
   int decelSteps = min(100, steps / 3);
-  
+
   const bool positive = direction;
   bool dir = direction;
   if (xDirectionInverted) {
@@ -69,17 +69,17 @@ void moveXSteps(int steps, bool direction) {
   }
   digitalWrite(X_DIR_PIN, dir);
   delay(10);
-  
+
   for (int i = 0; i < steps; i++) {
     uint32_t currentDelay = minDelay;
-    
+
     if (i < accelSteps) {
       currentDelay = startDelay - (startDelay - minDelay) * i / accelSteps;
     } else if (i > steps - decelSteps) {
       int decelPos = steps - i;
       currentDelay = minDelay + (startDelay - minDelay) * (decelSteps - decelPos) / decelSteps;
     }
-    
+
     digitalWrite(X_STEP_PIN, HIGH);
     delayMicroseconds(currentDelay);
     digitalWrite(X_STEP_PIN, LOW);
@@ -92,10 +92,10 @@ void moveXSteps(int steps, bool direction) {
 void moveYSteps(int steps, bool direction) {
   uint32_t minDelay = 1000000 / (MOVE_SPEED * 2);
   uint32_t startDelay = minDelay * 4;
-  
+
   int accelSteps = min(100, steps / 3);
   int decelSteps = min(100, steps / 3);
-  
+
   const bool positive = direction;
   bool dir = direction;
   if (yDirectionInverted) {
@@ -103,17 +103,17 @@ void moveYSteps(int steps, bool direction) {
   }
   digitalWrite(Y_DIR_PIN, dir);
   delay(10);
-  
+
   for (int i = 0; i < steps; i++) {
     uint32_t currentDelay = minDelay;
-    
+
     if (i < accelSteps) {
       currentDelay = startDelay - (startDelay - minDelay) * i / accelSteps;
     } else if (i > steps - decelSteps) {
       int decelPos = steps - i;
       currentDelay = minDelay + (startDelay - minDelay) * (decelSteps - decelPos) / decelSteps;
     }
-    
+
     digitalWrite(Y_STEP_PIN, HIGH);
     delayMicroseconds(currentDelay);
     digitalWrite(Y_STEP_PIN, LOW);
@@ -132,45 +132,45 @@ void moveDiagonal(int xSteps, bool xDir, int ySteps, bool yDir) {
   Serial.print(ySteps);
   Serial.print(" steps Y ");
   Serial.println(yDir ? "+" : "-");
-  
+
   bool xInv = xDirectionInverted ? !xDir : xDir;
   bool yInv = yDirectionInverted ? !yDir : yDir;
-  
+
   digitalWrite(X_DIR_PIN, xInv);
   digitalWrite(Y_DIR_PIN, yInv);
   delay(10);
-  
+
   uint32_t minDelay = 1000000 / (MOVE_SPEED * 2);
   uint32_t startDelay = minDelay * 4;
-  
+
   int maxSteps = max(xSteps, ySteps);
   int accelSteps = min(100, maxSteps / 3);
   int decelSteps = min(100, maxSteps / 3);
-  
+
   for (int i = 0; i < maxSteps; i++) {
     uint32_t currentDelay = minDelay;
-    
+
     if (i < accelSteps) {
       currentDelay = startDelay - (startDelay - minDelay) * i / accelSteps;
     } else if (i > maxSteps - decelSteps) {
       int decelPos = maxSteps - i;
       currentDelay = minDelay + (startDelay - minDelay) * (decelSteps - decelPos) / decelSteps;
     }
-    
+
     if (i < xSteps) {
       digitalWrite(X_STEP_PIN, HIGH);
       delayMicroseconds(currentDelay / 2);
       digitalWrite(X_STEP_PIN, LOW);
       currentColumn += (xDir ? 1.0f : -1.0f) / STEPS_PER_COLUMN;
     }
-    
+
     if (i < ySteps) {
       digitalWrite(Y_STEP_PIN, HIGH);
       delayMicroseconds(currentDelay / 2);
       digitalWrite(Y_STEP_PIN, LOW);
       currentRow += (yDir ? 1.0f : -1.0f) / STEPS_PER_ROW;
     }
-    
+
     delayMicroseconds(currentDelay);
   }
 }
@@ -263,35 +263,35 @@ void placePiece() {
 
 void executeBishopMove(char fromCol, int fromRow, char toCol, int toRow) {
   Serial.println("=== Bishop diagonal movement ===");
-  
+
   float fromX = fromCol - 'a' + 1;
   float fromY = fromRow;
   float toX = toCol - 'a' + 1;
   float toY = toRow;
-  
+
   int dx = abs((int)toX - (int)fromX);
   int dy = abs((int)toY - (int)fromY);
-  
+
   if (dx != dy) {
     Serial.println("ERROR: Bishop move must be diagonal");
     return;
   }
-  
+
   Serial.print("Moving from ");
   Serial.print(fromCol);
   Serial.print(fromRow);
   Serial.print(" to ");
   Serial.print(toCol);
   Serial.println(toRow);
-  
+
   moveToSquare(fromCol, fromRow);
   pickUpPiece();
   Serial.println("Bishop picked up");
-  
+
   moveToSquare(toCol, toRow);
   placePiece();
   Serial.println("Bishop placed");
-  
+
   Serial.println("=== Bishop move complete ===");
   Serial.println("DONE");
 }
@@ -301,21 +301,21 @@ void executeUCIMove(const String& uciMove) {
     Serial.println("ERROR: Invalid UCI move format");
     return;
   }
-  
+
   char fromCol = uciMove[0];
   int fromRow = uciMove[1] - '0';
   char toCol = uciMove[2];
   int toRow = uciMove[3] - '0';
-  
+
   if (fromCol < 'a' || fromCol > 'h' || fromRow < 1 || fromRow > 8 ||
       toCol < 'a' || toCol > 'h' || toRow < 1 || toRow > 8) {
     Serial.println("ERROR: Invalid square in UCI move");
     return;
   }
-  
+
   int dx = abs(toCol - fromCol);
   int dy = abs(toRow - fromRow);
-  
+
   if (dx == dy && dx > 0) {
     executeBishopMove(fromCol, fromRow, toCol, toRow);
   } else {
@@ -326,21 +326,21 @@ void executeUCIMove(const String& uciMove) {
 void setup() {
   Serial.begin(115200);
   delay(2000);
-  
+
   pinMode(X_STEP_PIN, OUTPUT);
   pinMode(X_DIR_PIN, OUTPUT);
   pinMode(X_EN_PIN, OUTPUT);
-  
+
   pinMode(Y_STEP_PIN, OUTPUT);
   pinMode(Y_DIR_PIN, OUTPUT);
   pinMode(Y_EN_PIN, OUTPUT);
-  
+
   pinMode(ELECTROMAGNET_PIN, OUTPUT);
-  
+
   digitalWrite(X_EN_PIN, LOW);
   digitalWrite(Y_EN_PIN, LOW);
   digitalWrite(ELECTROMAGNET_PIN, LOW);
-  
+
   Serial.println("=== Bishop Diagonal Movement Test ===");
   Serial.println("\nCommands:");
   Serial.println("  c1f4    - Bishop diagonal test (c1 to f4)");
@@ -380,14 +380,14 @@ void loop() {
     }
 
     serialInput.trim();
-    
+
     if (serialInput == "c1f4") {
       executeBishopMove('c', 1, 'f', 4);
     }
     else if (serialInput == "d1a4") {
       executeBishopMove('d', 1, 'a', 4);
     }
-    else if (serialInput.length() == 4 && 
+    else if (serialInput.length() == 4 &&
         serialInput[0] >= 'a' && serialInput[0] <= 'h' &&
         serialInput[1] >= '1' && serialInput[1] <= '8' &&
         serialInput[2] >= 'a' && serialInput[2] <= 'h' &&

@@ -35,26 +35,26 @@ void moveXSteps(int steps, bool direction) {
   if (xDirectionInverted) {
     direction = !direction;
   }
-  
+
   digitalWrite(X_DIR_PIN, direction);
   delay(10);
-  
+
   uint32_t minDelay = 1000000 / (MOVE_SPEED * 2);
   uint32_t startDelay = minDelay * 4;
-  
+
   int accelSteps = min(100, steps / 3);
   int decelSteps = min(100, steps / 3);
-  
+
   for (int i = 0; i < steps; i++) {
     uint32_t currentDelay = minDelay;
-    
+
     if (i < accelSteps) {
       currentDelay = startDelay - (startDelay - minDelay) * i / accelSteps;
     } else if (i > steps - decelSteps) {
       int decelPos = steps - i;
       currentDelay = minDelay + (startDelay - minDelay) * (decelSteps - decelPos) / decelSteps;
     }
-    
+
     digitalWrite(X_STEP_PIN, HIGH);
     delayMicroseconds(currentDelay);
     digitalWrite(X_STEP_PIN, LOW);
@@ -69,26 +69,26 @@ void moveYSteps(int steps, bool direction) {
   if (yDirectionInverted) {
     direction = !direction;
   }
-  
+
   digitalWrite(Y_DIR_PIN, direction);
   delay(10);
-  
+
   uint32_t minDelay = 1000000 / (MOVE_SPEED * 2);
   uint32_t startDelay = minDelay * 4;
-  
+
   int accelSteps = min(100, steps / 3);
   int decelSteps = min(100, steps / 3);
-  
+
   for (int i = 0; i < steps; i++) {
     uint32_t currentDelay = minDelay;
-    
+
     if (i < accelSteps) {
       currentDelay = startDelay - (startDelay - minDelay) * i / accelSteps;
     } else if (i > steps - decelSteps) {
       int decelPos = steps - i;
       currentDelay = minDelay + (startDelay - minDelay) * (decelSteps - decelPos) / decelSteps;
     }
-    
+
     digitalWrite(Y_STEP_PIN, HIGH);
     delayMicroseconds(currentDelay);
     digitalWrite(Y_STEP_PIN, LOW);
@@ -186,50 +186,50 @@ void placePiece() {
 
 void executeKnightG1ToF3() {
   Serial.println("=== Knight g1 -> f3 with grid line navigation ===");
-  
+
   Serial.println("Step 1: Go to g1, pick up knight");
   moveToSquare('g', 1);
   pickUpPiece();
   Serial.println("Knight picked up");
-  
+
   // Piece displacement disabled - grid line navigation provides enough clearance
   /*
   Serial.println("Step 2: Shift knight left to create exit corridor");
   moveToPosition(7.0 - CLEARANCE_OFFSET, 1.0);
   placePiece();
   Serial.println("Knight placed temporarily at (6.75, 1)");
-  
+
   Serial.println("Step 3: Move f2 pawn left");
   moveToSquare('f', 2);
   pickUpPiece();
   moveToPosition(6.0 - CLEARANCE_OFFSET, 2.0);
   placePiece();
   Serial.println("f2 pawn moved to (5.75, 2)");
-  
+
   Serial.println("Step 4: Move g2 pawn right");
   moveToSquare('g', 2);
   pickUpPiece();
   moveToPosition(7.0 + CLEARANCE_OFFSET, 2.0);
   placePiece();
   Serial.println("g2 pawn moved to (7.25, 2)");
-  
+
   Serial.println("Step 5: Pick up knight again");
   moveToPosition(7.0 - CLEARANCE_OFFSET, 1.0);
   pickUpPiece();
   Serial.println("Knight picked up");
   */
-  
+
   Serial.println("Step 2: Move to grid intersection (6.5, 1.5)");
   moveToPosition(6.5, 1.5);
-  
+
   Serial.println("Step 3: Move along grid line through gap (6.5, 2.5)");
   moveToPosition(6.5, 2.5);
-  
+
   Serial.println("Step 4: Enter f3 center");
   moveToSquare('f', 3);
   placePiece();
   Serial.println("Knight placed at f3");
-  
+
   // Piece restoration disabled - no pieces were displaced
   /*
   Serial.println("Step 9: Restore f2 pawn");
@@ -238,7 +238,7 @@ void executeKnightG1ToF3() {
   moveToSquare('f', 2);
   placePiece();
   Serial.println("f2 pawn restored to f2");
-  
+
   Serial.println("Step 10: Restore g2 pawn");
   moveToPosition(7.0 + CLEARANCE_OFFSET, 2.0);
   pickUpPiece();
@@ -246,10 +246,10 @@ void executeKnightG1ToF3() {
   placePiece();
   Serial.println("g2 pawn restored to g2");
   */
-  
+
   Serial.println("Step 5: Return to center");
   moveToPosition(START_COLUMN, START_ROW);
-  
+
   Serial.println("=== Knight move complete ===");
   Serial.println("DONE");
 }
@@ -257,21 +257,21 @@ void executeKnightG1ToF3() {
 void setup() {
   Serial.begin(115200);
   delay(2000);
-  
+
   pinMode(X_STEP_PIN, OUTPUT);
   pinMode(X_DIR_PIN, OUTPUT);
   pinMode(X_EN_PIN, OUTPUT);
-  
+
   pinMode(Y_STEP_PIN, OUTPUT);
   pinMode(Y_DIR_PIN, OUTPUT);
   pinMode(Y_EN_PIN, OUTPUT);
-  
+
   pinMode(ELECTROMAGNET_PIN, OUTPUT);
-  
+
   digitalWrite(X_EN_PIN, LOW);
   digitalWrite(Y_EN_PIN, LOW);
   digitalWrite(ELECTROMAGNET_PIN, LOW);
-  
+
   Serial.println("=== Knight Offset Test ===");
   Serial.println("\nCommands:");
   Serial.println("  k       - Execute knight g1->f3 with clearance");
@@ -309,7 +309,7 @@ void loop() {
     }
 
     serialInput.trim();
-    
+
     if (serialInput == "k") {
       executeKnightG1ToF3();
     }

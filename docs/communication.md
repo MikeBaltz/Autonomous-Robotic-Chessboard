@@ -12,7 +12,12 @@ This is the protocol currently running on the physical board. The Python `chess_
 
 | Command | Description | Status |
 |---|---|---|
-| `e2e4` (any UCI `from`+`to`) | Execute a physical chess move: navigate to source, energize electromagnet (pickup), transport (piece-specific strategy: knight grid-line, bishop diagonal, otherwise X-then-Y), place, reply `DONE` | Implemented |
+| `e2e4` / `e7e8q` (UCI, optional promotion letter) | Execute a physical chess move: navigate to source, energize electromagnet (pickup), transport (knight grid-line, diagonal, otherwise X-then-Y), place, reply `DONE`. The promotion letter is logged; the replacement piece is placed by hand | Implemented |
+| `g x y` | Move to absolute grid coordinates (bounds −1.5 … 8.5) | Implemented |
+| `path x1 y1 x2 y2 …` | Move through waypoints in order | Implemented |
+| `scan e4` | Move the Hall sensor over the square and read it; replies `SCAN e4 M\|E\|X` (magnet / empty / unstable) | Implemented |
+| `scanpos x y` | Same as `scan`, at grid coordinates (e.g. capture-lane slots) | Implemented |
+| `lane L1`…`R8` | Move to a capture-lane slot (manual positioning; the bridge routes lanes with `g`/`path`) | Implemented |
 | `m a3` / `m a` | Move carriage to square / column | Implemented |
 | `a`–`h`, `1`–`8` | Move to column / row | Implemented |
 | `l` `r` `t` `w` | Park in left/right/top/bottom surround | Implemented |
@@ -20,13 +25,15 @@ This is the protocol currently running on the physical board. The Python `chess_
 | `o` / `O` | Electromagnet ON / OFF | Implemented |
 | `x` | Return to home/center | Implemented |
 | `p` | Print current position | Implemented |
+| `h` | Help | Implemented |
 | `d` / `E` | Pin diagnostics / force-enable motors | Implemented |
 
 ### ESP32 → PC
 
 | Response | Description | Status |
 |---|---|---|
-| `DONE` | Move completed (bridge treats this as success) | Implemented |
+| `DONE` | Command completed (bridge treats this as success; every successful command ends with it) | Implemented |
+| `SCAN <sq> M\|E\|X` / `SCANPOS <x> <y> M\|E\|X` | Hall reading: `M` black piece, `E` empty or white piece (single-polarity sensor), `X` unstable | Implemented |
 | `ERROR: …` | Invalid move format or square | Implemented |
 | Human-readable logs | Move progress, positions, diagnostics | Implemented |
 
@@ -63,5 +70,5 @@ Draft command/response vocabulary for the integrated system. **Status: unimpleme
 ## Notes
 
 - Binary framing, CRC, and sequence numbers are planned (see [firmware_architecture.md](firmware_architecture.md) §6).
-- The bridge currently relies on `DONE`/`ERROR` lines plus human-readable logs; timeouts are enforced client-side (20 s for moves).
+- The bridge currently relies on `DONE`/`ERROR`/`SCAN` lines plus human-readable logs; timeouts are enforced client-side.
 - A stop/emergency-stop command does not exist yet in the running protocol — motors can be disabled via `E`-family diagnostics or power removal. A real e-stop is a roadmap item.

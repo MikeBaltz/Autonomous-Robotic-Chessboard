@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted, amended (see [Update — single-polarity sensing](#update--single-polarity-sensing))
 
 ---
 
@@ -49,3 +49,19 @@ Use a single Hall sensor to detect magnet presence only. Piece color tracking is
 - Detects magnet presence (true/false)
 - Debounced reading with 5 samples
 - Game state tracks which pieces are where
+
+---
+
+## Update — single-polarity sensing
+
+The sensor was modified to respond to one magnet polarity only. It now
+detects **black pieces only**; white pieces read as empty.
+
+- The bridge predicts, for each legal black move, exactly which squares
+  hold black pieces afterwards, so captures are detected unambiguously.
+- Robot (white) moves are verified by checking the changed squares read
+  empty; black pieces carried to the right lane are confirmed by a scan.
+- White pieces (promotions, pieces captured by the player) cannot be
+  verified by hardware. Captured white pieces are assumed to be on the
+  first free left-lane slot.
+

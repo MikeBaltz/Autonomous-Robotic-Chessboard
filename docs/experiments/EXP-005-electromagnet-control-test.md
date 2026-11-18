@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — control validated, power debugging needed
+Completed — control validated; physical operation passes after a wiring fix (see [Follow-up 2026-11-18](#follow-up-2026-11-18--physical-operation-passes))
 
 > **Note (2026-10):** this experiment was performed with the electromagnet on GPIO15. The pin has since moved to **GPIO39** (see [hardware.md](../hardware.md)); the findings below describe the original wiring.
 
@@ -208,3 +208,22 @@ Commands:
    - Measure heat generation during extended operation
    - Test pickup/release sequences
    - Integrate with carriage movement
+
+---
+
+## Follow-up (2026-11-18) — physical operation passes
+
+**Cause of the original failure:** a wiring fault in the electromagnet's power path. The MOSFET was switching correctly (as the original report found), but the coil was not receiving supply current. Once the wiring was repaired, the electromagnet produced holding force.
+
+**Current wiring:** control pin GPIO39, active HIGH (moved from GPIO15 since the original test; see [hardware.md](../hardware.md)).
+
+**How it was tested:** full robot-vs-human games run through [`chess_bridge`](../../software/chess_bridge/) with the [`movement`](../../sketches/movement/) sketch. During these games the electromagnet picked up pieces through the board, held them while the carriage moved (straight moves, knight grid-line routes and diagonal moves), and released them on the target square. Captured pieces were also carried off the board into the side capture lanes.
+
+**Physical operation: PASSED**
+
+✓ Picks up pieces through the board surface
+✓ Holds pieces during transport, including multi-segment routes
+✓ Releases pieces at the destination when switched off
+
+**Not yet characterized:** heat generation during long games and a quantitative holding-force or maximum-speed margin. These remain open follow-up measurements.
+
